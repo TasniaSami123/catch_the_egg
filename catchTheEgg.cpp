@@ -1,207 +1,108 @@
 #include <GL/glut.h>
-
 #include <cmath>
-
 #include <vector>
-
 #include <string>
-
 #include <cstdlib>
-
 #include <ctime>
-
 #include <algorithm>
 
-
 struct Vec2 { float x,y; };
-
 float frand(float a, float b){ return a + (b-a)*(rand()/(float)RAND_MAX); }
-
-
 enum class ObjType { NormalEgg, BlueEgg, GoldenEgg, Poop, PerkSize, PerkSlow, PerkTime };
-
 enum class Screen  { Menu, Help, Playing, Paused, GameOver };
 
-
 struct Falling {
-
     ObjType type;
-
     Vec2 pos;
-
     float vy;
-
     float radius;
-
     float rot=0.0f, rotSpd=0.0f;
-
     bool  active=true;
-
 };
-
 
 struct Basket {
-
     float x=0.0f, y=-0.8f;
-
     float halfW=0.16f, h=0.09f;
-
 };
-
 
 struct Chicken {
-
     float x=0.0f, y=0.70f;
-
     float vx=0.45f;
-
     float bob=0.0f;
-
 };
-
 
 struct Particle {
-
     Vec2 p, v;
-
     float life, maxLife;
-
     float size;
-
     float r,g,b,a;
-
 };
-
 
 struct FloatText {
-
     Vec2 p;
-
     std::string s;
-
     float life=1.0f;
-
     float vy=0.35f;
-
     float r=0,g=0,b=0;
-
 };
-
 
 static int   winW=900, winH=600;
-
 static float worldL=-1, worldR=1, worldB=-1, worldT=1;
-
-
 static Screen screenState = Screen::Menu;
-
 static int menuIndex=0;
-
-
 static Basket basket;
-
 static Chicken chicken;
-
 static std::vector<Falling> objs;
-
 static std::vector<Particle> parts;
-
 static std::vector<FloatText> floatTexts;
-
-
 static int score=0, highScore=0;
-
 static int timeLeft=60;
-
-
 static bool slowFall=false;  static float slowFallTimer=0;
-
 static bool bigBasket=false; static float bigBasketTimer=0;
-
-
 static float spawnTimer=0, spawnEvery=0.65f;
-
 static int   lastTick=0;
-
-
 static float shake=0.0f;
 
-
 // --- Mouse / Button support
-
 struct Button {
-
     float x1, y1, x2, y2;  // in world‑coords
-
     std::string label;
-
     void (*action)();
-
 };
-
 
 static std::vector<Button> menuButtons;
 
-
 // Utility to map window coordinate to world coordinate
-
 Vec2 windowToWorld(int mx, int my) {
-
     float wx = worldL + (mx / (float)winW) * (worldR - worldL);
-
     float wy = worldB + ((winH - my) / (float)winH) * (worldT - worldB);
-
     return {wx, wy};
-
 }
-
 
 void startGame();
-
 void helpScreen();
-
 void exitGame();
-
-
 bool isOver(const Button& b, const Vec2& wpos) {
-
     return (wpos.x >= b.x1 && wpos.x <= b.x2 && wpos.y >= b.y1 && wpos.y <= b.y2);
-
 }
 
-
 void mouseClick(int button, int state, int x, int y) {
-
     if (state != GLUT_DOWN) return;
-
     Vec2 wpos = windowToWorld(x,y);
-
     if (screenState == Screen::Menu) {
-
         for (auto &b : menuButtons) {
-
             if (isOver(b, wpos)) {
-
                 b.action();
-
                 return;
-
             }
-
         }
-
     } else if (screenState == Screen::GameOver) {
-
+        
         // Define clickable regions for game‑over options.
-
         // We’ll approximate via world coords:
-
         // "Enter: Menu" – we treat clicking the left half
-
         // "S: Restart" – clicking the right half
-
         // You could add explicit buttons just like menuButtons if you prefer
-
         if (wpos.x < 0) {
 
             // Return to menu
